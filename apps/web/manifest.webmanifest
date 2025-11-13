@@ -1,0 +1,21 @@
+{
+    "name": "CatGen PWA",
+    "short_name": "CatGen",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ec0089",
+    "description": "Um PWA gerador de imagens de gatos para o Bootcamp.",
+    "icons": [
+      {
+        "src": "/icons/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/icons/icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }

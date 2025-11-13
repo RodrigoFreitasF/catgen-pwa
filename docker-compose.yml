@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 1. SERVIÇO DE BACKEND (API)
+  api:
+    build:
+      context: ./apps/api
+    ports:
+      - "3000:3000"
+    container_name: catgen-api
+    restart: always
+    environment:
+      - NODE_ENV=production
+    networks: # NOVO
+      - catgen-network # Atribui o serviço à nossa nova rede
+
+  # 2. SERVIÇO DE FRONTEND (PWA)
+  web:
+    build:
+      context: ./apps/web
+    ports:
+      - "8080:80"
+    container_name: catgen-web
+    restart: always
+    depends_on: 
+      - api
+    networks: # NOVO
+      - catgen-network # Atribui o serviço à nossa nova rede
+
+# 3. DEFINIÇÃO DA REDE
+networks:
+  catgen-network:
+    driver: bridge # O driver padrão
