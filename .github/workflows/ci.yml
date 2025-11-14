@@ -31,17 +31,26 @@ jobs:
       - name: Instalar Navegadores do Playwright
         run: cd apps/e2e && npx playwright install --with-deps
 
-      # --- 2. Iniciar os Contêineres para Teste (Docker Compose) ---
+      # --- 2. Iniciar os Contêineres (Docker Compose) ---
       - name: Build e Start dos Contêineres
-        # Usa o Compose para construir e subir a API e o WEB
+        # Constrói e sobe os serviços 'api' e 'web'
         run: docker compose up --build -d
         
-      - name: Aguardar o Início dos Serviços
-        # O Playwright precisa que a URL esteja acessível
-        uses: jakejarvis/wait-for-url@master
-        with:
-          url: http://localhost:8080
-          timeout: 60
+      - name: Aguardar o Início dos Serviços (FIXED)
+        # Substitui a Action quebrada por um script Bash (curl)
+        run: |
+          echo "Aguardando o contêiner web em http://localhost:8080 estar acessível..."
+          # Tenta conectar por até 60 segundos
+          for i in $(seq 1 60); do
+            if curl -s http://localhost:8080 > /dev/null; then
+              echo "Serviço web está pronto!"
+              exit 0
+            fi
+            echo "Aguardando mais 1 segundo... (Tentativa $i/60)"
+            sleep 1
+          done
+          echo "Erro: O serviço não iniciou a tempo na porta 8080."
+          exit 1
 
       # --- 3. Execução dos Testes E2E ---
       - name: Rodar Testes Playwright (E2E)
@@ -49,7 +58,7 @@ jobs:
 
       # --- 4. Preparar e Publicar Artefatos ---
       - name: Build Final do PWA (Artefato)
-        # O build já foi feito no Docker Compose, mas garantimos a cópia dos arquivos
+        # Cria um contêiner temporário para copiar os arquivos estáticos (HTML/CSS/JS)
         run: |
           docker create --name web-temp catgen-pwa-web
           docker cp web-temp:/usr/share/nginx/html ./web-dist
