@@ -1,0 +1,63 @@
+# .github/workflows/ci.yml
+
+name: CI/CD do PWA CatGen
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # --- 1. Instalação das Dependências ---
+      - name: Instalar Dependências (API)
+        run: cd apps/api && npm ci
+
+      - name: Instalar Dependências (E2E Playwright)
+        run: cd apps/e2e && npm ci
+
+      - name: Instalar Navegadores do Playwright
+        run: cd apps/e2e && npx playwright install --with-deps
+
+      # --- 2. Iniciar os Contêineres para Teste (Docker Compose) ---
+      - name: Build e Start dos Contêineres
+        # Usa o Compose para construir e subir a API e o WEB
+        run: docker compose up --build -d
+        
+      - name: Aguardar o Início dos Serviços
+        # O Playwright precisa que a URL esteja acessível
+        uses: jakejarvis/wait-for-url@master
+        with:
+          url: http://localhost:8080
+          timeout: 60
+
+      # --- 3. Execução dos Testes E2E ---
+      - name: Rodar Testes Playwright (E2E)
+        run: cd apps/e2e && npm test
+
+      # --- 4. Preparar e Publicar Artefatos ---
+      - name: Build Final do PWA (Artefato)
+        # O build já foi feito no Docker Compose, mas garantimos a cópia dos arquivos
+        run: |
+          docker create --name web-temp catgen-pwa-web
+          docker cp web-temp:/usr/share/nginx/html ./web-dist
+          docker rm web-temp
+
+      - name: Upload dos Artefatos do PWA
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web-dist
+          retention-days: 7
