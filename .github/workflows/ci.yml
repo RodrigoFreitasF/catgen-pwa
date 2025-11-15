@@ -63,34 +63,29 @@ jobs:
           docker rm web-temp
 
       - name: Upload dos Artefatos do PWA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v2 # <--- Ação corrigida
         with:
-          name: web-dist
-          path: web-dist
-          retention-days: 7
+          path: web-dist # A pasta que contém os arquivos HTML/CSS/JS
 
-  deploy:
+ deploy:
     name: Deploy no GitHub Pages
     runs-on: ubuntu-latest
-    needs: build-and-test # Só roda se a etapa de build e teste for concluída com sucesso
+    needs: build-and-test
     
-    # Permissões necessárias para publicar a página
+    # Permissões:
     permissions:
       pages: write
       id-token: write
 
-    steps:
-      - name: Baixar Artefato de Build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: web-dist
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
+    steps:
       - name: Configurar o GitHub Pages
         uses: actions/configure-pages@v4
         
+      # O deploy agora usa o artefato criado pela ação 'upload-pages-artifact'
       - name: Publicar no GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          artifact_name: web-dist
