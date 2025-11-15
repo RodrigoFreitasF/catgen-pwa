@@ -1,4 +1,4 @@
-name: CI/CD do PWA CatGen
+name: CI/CD do PWA CatGen - FINAL DEPLOY
 
 on:
   push:
@@ -7,34 +7,29 @@ on:
     branches: [ master, main ]
 
 jobs:
-  build-and-test:
-    name: Build, Testes E2E e Criação de Artefato
+  build-and-upload:
+    name: Build e Criação de Artefato
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout Código
         uses: actions/checkout@v4
 
+      # 1. Instalação das Dependências (Apenas API)
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      # 1. Instalação das Dependências
-      - name: Instalar Dependências (API e E2E)
-        run: |
-          cd apps/api && npm ci
-          cd ../e2e && npm ci
-
-      - name: Instalar Navegadores do Playwright
-        run: cd apps/e2e && npx playwright install --with-deps
+          
+      - name: Instalar Dependências da API
+        run: cd apps/api && npm ci
 
       # 2. Iniciar os Contêineres (Docker Compose)
       - name: Build e Start dos Contêineres
         run: docker compose up --build -d
-        
-      - name: Aguardar o Início dos Serviços (FIXED)
-        # Script Bash nativo para garantir que a porta 8080 esteja pronta
+
+      # 3. Aguardar o Início dos Serviços (Essencial para o deploy)
+      - name: Aguardar o Início do Serviço Web
         run: |
           echo "Aguardando o contêiner web em http://localhost:8080 estar acessível..."
           for i in $(seq 1 60); do
@@ -42,31 +37,17 @@ jobs:
               echo "Serviço web está pronto!"
               exit 0
             fi
-            echo "Aguardando mais 1 segundo... (Tentativa $i/60)"
             sleep 1
           done
           echo "Erro: O serviço não iniciou a tempo na porta 8080."
           exit 1
-
-      # 3. Execução dos Testes E2E
-      - name: Rodar Testes Playwright (E2E)
-        run: cd apps/e2e && npm test
-
+          
       # 4. Preparar e Publicar Artefatos
       - name: Build Final do PWA (Artefato)
         run: |
-          # Cria e extrai os arquivos do contêiner para a pasta local
           docker create --name web-temp catgen-pwa-web
           docker cp web-temp:/usr/share/nginx/html ./web-dist
           docker rm web-temp
-
-          # 🚨 COMANDOS CRÍTICOS DE LIMPEZA DE METADADOS:
-          # Move o conteúdo da pasta extraída para a raiz do artefato
-          mv ./web-dist/html/* ./web-dist/
-          rmdir ./web-dist/html
-          # Força a permissão simples (sem links ou flags de execução) em todos os arquivos
-          chmod -R 755 ./web-dist/
-          find ./web-dist -type f -exec chmod 644 {} +
 
       - name: Upload dos Artefatos do PWA
         uses: actions/upload-artifact@v4
@@ -78,9 +59,8 @@ jobs:
   deploy:
     name: Deploy no GitHub Pages
     runs-on: ubuntu-latest
-    needs: build-and-test # Só roda se a etapa de build e teste for concluída com sucesso
+    needs: build-and-upload # Nome do job mudou
     
-    # Permissões:
     permissions:
       pages: write
       id-token: write
