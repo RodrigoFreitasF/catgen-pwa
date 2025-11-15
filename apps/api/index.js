@@ -21,7 +21,7 @@ app.get('/api/gato', async (req, res) => {
 
     const data = await apiResponse.json();
     
-    const catImageUrl = BASE_URL + data.url; 
+    const catImageUrl = data.url;
 
     res.json({ imageUrl: catImageUrl });
 

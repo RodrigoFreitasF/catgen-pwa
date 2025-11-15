@@ -1,5 +1,5 @@
 
-const API_URL = 'http://api:3000/api/gato';
+const API_URL = '/api/gato';
 
 
 if ('serviceWorker' in navigator) {
@@ -24,21 +24,24 @@ document.addEventListener('DOMContentLoaded', () => {
   btnGato.addEventListener('click', buscarNovoGato);
 
   async function buscarNovoGato() {
+    console.log('Botão clicado! Buscando gato...');
     statusEl.textContent = 'Buscando gato... 😸';
     imgGato.src = ''; 
 
     try {
-     
+      console.log('Fazendo fetch para:', API_URL);
       const response = await fetch(API_URL);
+      console.log('Resposta recebida:', response.status);
 
       if (!response.ok) {
         throw new Error(`Erro HTTP: ${response.status}`);
       }
 
       const data = await response.json();
-      
+      console.log('Dados recebidos:', data);
       
       imgGato.src = data.imageUrl;
+      console.log('Imagem setada para:', data.imageUrl);
       statusEl.textContent = 'Gato encontrado!';
 
     } catch (error) {
