@@ -20,7 +20,6 @@ jobs:
         with:
           node-version: '20'
 
-      # 1. Instalação das Dependências (Para rodar o Docker e os testes)
       - name: Instalar Dependências (API e E2E)
         run: |
           cd apps/api && npm ci
@@ -29,7 +28,6 @@ jobs:
       - name: Instalar Navegadores do Playwright
         run: cd apps/e2e && npx playwright install --with-deps
 
-      # 2. Iniciar os Contêineres (Essencial para rodar os testes E2E)
       - name: Build e Start dos Contêineres
         run: docker compose up --build -d
         
@@ -45,15 +43,14 @@ jobs:
           done
           exit 1 # Falha se o serviço não subir
 
-      # 3. Execução dos Testes E2E (Rodará o teste simplificado)
       - name: Rodar Testes Playwright (E2E)
         run: cd apps/e2e && npm test
 
-      # 4. Upload dos Arquivos (Direto da pasta de código-fonte)
+      
       - name: Upload dos Arquivos Fonte para Deploy
-        uses: actions/upload-pages-artifact@v3 # V3 é mais robusto
+        uses: actions/upload-pages-artifact@v3 
         with:
-          path: apps/web/ # <--- DEPLOY DA PASTA SOURCE (SEM METADADOS DOCKER)
+          path: apps/web/ 
 
   deploy:
     name: Deploy no GitHub Pages
@@ -65,7 +62,7 @@ jobs:
       id-token: write
 
     environment:
-      name: github-pages # Novo: define o ambiente
+      name: github-pages 
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
