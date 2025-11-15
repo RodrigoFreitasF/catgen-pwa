@@ -45,9 +45,12 @@ jobs:
       # 4. Preparar e Publicar Artefatos
       - name: Build Final do PWA (Artefato)
         run: |
-          docker create --name web-temp catgen-pwa-web
-          docker cp web-temp:/usr/share/nginx/html ./web-dist
-          docker rm web-temp
+          # Cria a pasta vazia de artefato
+          mkdir web-dist
+          
+          # Extrai os arquivos do contêiner rodando, usando tar para limpar os metadados
+          # O comando 'tar' cria um arquivo temporário no contêiner e o descompacta na pasta web-dist local.
+          docker exec catgen-web tar -c -C /usr/share/nginx/html . | tar x -C web-dist
 
       - name: Upload dos Artefatos do PWA
         uses: actions/upload-artifact@v4
