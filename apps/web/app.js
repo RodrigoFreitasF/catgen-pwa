@@ -1,5 +1,5 @@
 
-const API_URL = 'http://api:3000/api/gato';
+const API_URL = '/api/gato';
 
 
 if ('serviceWorker' in navigator) {
@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     imgGato.src = ''; 
 
     try {
-     
       const response = await fetch(API_URL);
 
       if (!response.ok) {
@@ -37,12 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await response.json();
       
-      
       imgGato.src = data.imageUrl;
       statusEl.textContent = 'Gato encontrado!';
 
     } catch (error) {
-      console.error('Erro ao buscar gato:', error);
       statusEl.textContent = 'Falha ao buscar gato. (A API está rodando?)';
       
       imgGato.src = 'https://cataas.com/cat/says/Falhou';
