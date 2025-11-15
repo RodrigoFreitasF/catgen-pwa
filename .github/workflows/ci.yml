@@ -7,28 +7,32 @@ on:
     branches: [ master, main ]
 
 jobs:
-  build-and-upload:
-    name: Build e Criação de Artefato
+  build-and-test:
+    name: Build, Testes E2E e Criação de Artefato
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout Código
         uses: actions/checkout@v4
 
-      # 1. Instalação das Dependências (Apenas API)
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
-      - name: Instalar Dependências da API
-        run: cd apps/api && npm ci
 
-      # 2. Iniciar os Contêineres (Docker Compose)
+      # 1. Instalação das Dependências (Para rodar o Docker e os testes)
+      - name: Instalar Dependências (API e E2E)
+        run: |
+          cd apps/api && npm ci
+          cd ../e2e && npm ci
+
+      - name: Instalar Navegadores do Playwright
+        run: cd apps/e2e && npx playwright install --with-deps
+
+      # 2. Iniciar os Contêineres (Essencial para rodar os testes E2E)
       - name: Build e Start dos Contêineres
         run: docker compose up --build -d
-
-      # 3. Aguardar o Início dos Serviços (Essencial para o deploy)
+        
       - name: Aguardar o Início do Serviço Web
         run: |
           echo "Aguardando o contêiner web em http://localhost:8080 estar acessível..."
@@ -39,47 +43,35 @@ jobs:
             fi
             sleep 1
           done
-          echo "Erro: O serviço não iniciou a tempo na porta 8080."
-          exit 1
-          
-      # 4. Preparar e Publicar Artefatos
-      - name: Build Final do PWA (Artefato)
-        run: |
-          # Cria a pasta vazia de artefato
-          mkdir web-dist
-          
-          # Extrai os arquivos do contêiner rodando, usando tar para limpar os metadados
-          # O comando 'tar' cria um arquivo temporário no contêiner e o descompacta na pasta web-dist local.
-          docker exec catgen-web tar -c -C /usr/share/nginx/html . | tar x -C web-dist
+          exit 1 # Falha se o serviço não subir
 
-      - name: Upload dos Artefatos do PWA
-        uses: actions/upload-artifact@v4
+      # 3. Execução dos Testes E2E (Rodará o teste simplificado)
+      - name: Rodar Testes Playwright (E2E)
+        run: cd apps/e2e && npm test
+
+      # 4. Upload dos Arquivos (Direto da pasta de código-fonte)
+      - name: Upload dos Arquivos Fonte para Deploy
+        uses: actions/upload-pages-artifact@v3 # V3 é mais robusto
         with:
-          name: web-dist
-          path: web-dist
-          retention-days: 7
+          path: apps/web/ # <--- DEPLOY DA PASTA SOURCE (SEM METADADOS DOCKER)
 
   deploy:
     name: Deploy no GitHub Pages
     runs-on: ubuntu-latest
-    needs: build-and-upload # Nome do job mudou
+    needs: build-and-test
     
     permissions:
       pages: write
       id-token: write
 
-    steps:
-      - name: Baixar Artefato de Build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: web-dist
+    environment:
+      name: github-pages # Novo: define o ambiente
+      url: ${{ steps.deployment.outputs.page_url }}
 
+    steps:
       - name: Configurar o GitHub Pages
         uses: actions/configure-pages@v4
         
       - name: Publicar no GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          artifact_name: web-dist
